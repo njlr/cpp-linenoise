@@ -2303,7 +2303,7 @@ inline bool linenoiseRaw(const char *prompt, std::string& line, const Completion
  * for a blacklist of stupid terminals, and later either calls the line
  * editing function or uses dummy fgets() so that you will be able to type
  * something even in the most desperate of the conditions. */
-inline bool Readline(const char *prompt, std::string& line, const CompletionCallback& completionCallback = [](auto a, auto b) {}) {
+inline bool Readline(const char *prompt, std::string& line, const CompletionCallback& completionCallback = [](const char* a, std::vector<std::string>& b) {}) {
     if (isUnsupportedTerm()) {
         printf("%s",prompt);
         fflush(stdout);
@@ -2314,13 +2314,13 @@ inline bool Readline(const char *prompt, std::string& line, const CompletionCall
     }
 }
 
-inline std::string Readline(const char *prompt, bool& quit, const CompletionCallback& completionCallback = [](auto a, auto b) {}) {
+inline std::string Readline(const char *prompt, bool& quit, const CompletionCallback& completionCallback = [](const char* a, std::vector<std::string>& b) {}) {
     std::string line;
     quit = Readline(prompt, line, completionCallback);
     return line;
 }
 
-inline std::string Readline(const char *prompt, const CompletionCallback& completionCallback = [](auto a, auto b) {}) {
+inline std::string Readline(const char *prompt, const CompletionCallback& completionCallback = [](const char* a, std::vector<std::string>& b) {}) {
     bool quit; // dummy
     return Readline(prompt, quit, completionCallback);
 }
