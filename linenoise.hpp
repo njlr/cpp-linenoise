@@ -12,16 +12,16 @@
  *
  *  Copyright (c) 2015 yhirose
  *  All rights reserved.
- *  
+ *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- *  
+ *
  *  1. Redistributions of source code must retain the above copyright notice, this
  *     list of conditions and the following disclaimer.
  *  2. Redistributions in binary form must reproduce the above copyright notice,
  *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  
+ *
  *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -77,11 +77,11 @@
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the author be held liable for any damages
  * arising from the use of this software.
- * 
+ *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
- * 
+ *
  * 1. The origin of this software must not be misrepresented; you must not
  *    claim that you wrote the original software. If you use this software
  *    in a product, an acknowledgment in the product documentation would be
@@ -89,7 +89,7 @@
  * 2. Altered source versions must be plainly marked as such, and must not be
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
- * 
+ *
  * Jason Hood
  * jadoxa@yahoo.com.au
  */
@@ -1061,7 +1061,7 @@ inline int win32_write(int fd, const void *buffer, unsigned int count) {
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096
 static const char *unsupported_term[] = {"dumb","cons25","emacs",NULL};
-static CompletionCallback completionCallback;
+//static CompletionCallback completionCallback;
 
 #ifndef _WIN32
 static struct termios orig_termios; /* In order to restore at exit.*/
@@ -1754,12 +1754,12 @@ inline void linenoiseBeep(void) {
  *
  * The state of the editing is encapsulated into the pointed linenoiseState
  * structure as described in the structure definition. */
-inline int completeLine(struct linenoiseState *ls, char *cbuf, int *c) {
+inline int completeLine(struct linenoiseState *ls, char *cbuf, int *c, const CompletionCallback& completionCallback) {
     std::vector<std::string> lc;
     int nread = 0, nwritten;
     *c = 0;
 
-    completionCallback(ls->buf,lc);
+    completionCallback(ls->buf, lc);
     if (lc.empty()) {
         linenoiseBeep();
     } else {
@@ -1820,9 +1820,9 @@ inline int completeLine(struct linenoiseState *ls, char *cbuf, int *c) {
 }
 
 /* Register a callback function to be called for tab-completion. */
-void SetCompletionCallback(CompletionCallback fn) {
-    completionCallback = fn;
-}
+// void SetCompletionCallback(CompletionCallback fn) {
+//     completionCallback = fn;
+// }
 
 /* =========================== Line editing ================================= */
 
@@ -2086,7 +2086,7 @@ inline void linenoiseEditDeletePrevWord(struct linenoiseState *l) {
  * when ctrl+d is typed.
  *
  * The function returns the length of the current buffer. */
-inline int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, const char *prompt)
+inline int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, const char *prompt, const CompletionCallback& completionCallback)
 {
     struct linenoiseState l;
 
@@ -2111,7 +2111,10 @@ inline int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
      * initially is just an empty string. */
     AddHistory("");
 
-    if (write(l.ofd,prompt,l.prompt.length()) == -1) return -1;
+    if (write(l.ofd, prompt, l.prompt.length()) == -1) {
+      return -1;
+    }
+
     while(1) {
         int c;
         char cbuf[4];
@@ -2131,8 +2134,8 @@ inline int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
         /* Only autocomplete when the callback is set. It returns < 0 when
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
-        if (c == 9 && completionCallback != NULL) {
-            nread = completeLine(&l,cbuf,&c);
+        if (c == 9) {
+            nread = completeLine(&l, cbuf, &c, completionCallback);
             /* Return on errors */
             if (c < 0) return l.len;
             /* Read next character when 0 */
@@ -2269,7 +2272,7 @@ inline int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
 
 /* This function calls the line editing function linenoiseEdit() using
  * the STDIN file descriptor set in raw mode. */
-inline bool linenoiseRaw(const char *prompt, std::string& line) {
+inline bool linenoiseRaw(const char *prompt, std::string& line, const CompletionCallback& completionCallback) {
     bool quit = false;
 
     if (!isatty(STDIN_FILENO)) {
@@ -2282,7 +2285,7 @@ inline bool linenoiseRaw(const char *prompt, std::string& line) {
         }
 
         char buf[LINENOISE_MAX_LINE];
-        auto count = linenoiseEdit(STDIN_FILENO, STDOUT_FILENO, buf, LINENOISE_MAX_LINE, prompt);
+        auto count = linenoiseEdit(STDIN_FILENO, STDOUT_FILENO, buf, LINENOISE_MAX_LINE, prompt, completionCallback);
         if (count == -1) {
             quit = true;
         } else {
@@ -2300,26 +2303,26 @@ inline bool linenoiseRaw(const char *prompt, std::string& line) {
  * for a blacklist of stupid terminals, and later either calls the line
  * editing function or uses dummy fgets() so that you will be able to type
  * something even in the most desperate of the conditions. */
-inline bool Readline(const char *prompt, std::string& line) {
+inline bool Readline(const char *prompt, std::string& line, const CompletionCallback& completionCallback = [](auto a, auto b) {}) {
     if (isUnsupportedTerm()) {
         printf("%s",prompt);
         fflush(stdout);
         std::getline(std::cin, line);
         return false;
     } else {
-        return linenoiseRaw(prompt, line);
+        return linenoiseRaw(prompt, line, completionCallback);
     }
 }
 
-inline std::string Readline(const char *prompt, bool& quit) {
+inline std::string Readline(const char *prompt, bool& quit, const CompletionCallback& completionCallback = [](auto a, auto b) {}) {
     std::string line;
-    quit = Readline(prompt, line);
+    quit = Readline(prompt, line, completionCallback);
     return line;
 }
 
-inline std::string Readline(const char *prompt) {
+inline std::string Readline(const char *prompt, const CompletionCallback& completionCallback = [](auto a, auto b) {}) {
     bool quit; // dummy
-    return Readline(prompt, quit);
+    return Readline(prompt, quit, completionCallback);
 }
 
 /* ================================ History ================================= */

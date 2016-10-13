@@ -1,3 +1,3 @@
 .DEFAULT_GOAL := example
 
-example: example.cpp; clang++ -o example example.cpp -std=c++14 
+example: example.cpp; clang++ -o example.out example.cpp -std=c++14 
