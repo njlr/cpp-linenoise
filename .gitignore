@@ -37,7 +37,6 @@ Release
 *.user
 xcuserdata
 *.xcworkspace
-Makefile
 CMakeFiles
 CMakeCache.txt
 *.cmake
